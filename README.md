@@ -114,7 +114,7 @@ By default the Docker volume with Nano data is preserved.
 - **[INSTALL.md](INSTALL.md)** — quick start, verification, troubleshooting
 - **[DESIGN.md](DESIGN.md)** — scope, dependency strategy, security defaults, release checklist
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — component integration deep-dive and caveats
-- **[installation-methods.html](installation-methods.html)** — comparison of one-command install methods
+- **[Installation methods comparison](https://krishna-exasol.github.io/exasol-ai/installation-methods.html)** — one-command install methods, ranked ([source](installation-methods.html))
 - **[CHANGELOG.md](CHANGELOG.md)** · **[CONTRIBUTING.md](CONTRIBUTING.md)**
 
 ---
