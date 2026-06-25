@@ -100,6 +100,13 @@ Run the uninstall script from the install dir (the installer downloads it there)
 ~\.exasol-ai\uninstall.ps1                # removes the stack, KEEPS data
 ~\.exasol-ai\uninstall.ps1 -RemoveData    # also deletes the data volume
 ```
+
+If Windows blocks script execution, run it through PowerShell with a one-time policy bypass:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "$HOME\.exasol-ai\uninstall.ps1"
+```
+
 ```bash
 ~/.exasol-ai/uninstall.sh                 # removes the stack, KEEPS data
 REMOVE_DATA=1 ~/.exasol-ai/uninstall.sh   # also deletes the data volume
