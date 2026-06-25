@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exasol AI Installation Methods</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8f5;
+      --ink: #18201f;
+      --muted: #5c6863;
+      --line: #d9ded6;
+      --panel: #ffffff;
+      --green: #1f7a5a;
+      --green-soft: #e4f4ed;
+      --blue: #285f8f;
+      --blue-soft: #e8f1f8;
+      --amber: #946200;
+      --amber-soft: #fff0cf;
+      --red: #a43d3d;
+      --red-soft: #fbe5e3;
+      --code: #101817;
+      --code-bg: #eef2ef;
+      --shadow: 0 1px 2px rgba(18, 25, 24, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfa;
+    }
+
+    main,
+    .bar {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .bar {
+      padding: 30px 0 28px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 820px;
+      margin-bottom: 12px;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 850px;
+      margin-bottom: 22px;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .summary {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      min-height: 118px;
+    }
+
+    .summary strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: .95rem;
+    }
+
+    .summary span {
+      color: var(--muted);
+      font-size: .92rem;
+    }
+
+    main {
+      padding: 26px 0 48px;
+    }
+
+    section {
+      margin-bottom: 32px;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      font-size: 1.35rem;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 980px;
+      border-collapse: collapse;
+      font-size: .93rem;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 13px 14px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f1f4f0;
+      color: #2d3633;
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    code,
+    pre {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    code {
+      border: 1px solid #d6ddd7;
+      border-radius: 6px;
+      background: var(--code-bg);
+      padding: 2px 5px;
+      color: var(--code);
+      font-size: .88em;
+      white-space: nowrap;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 0;
+      border-radius: 8px;
+      background: #111817;
+      color: #f5f7f3;
+      padding: 14px;
+      font-size: .88rem;
+      line-height: 1.45;
+    }
+
+    pre code {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      padding: 0;
+      color: inherit;
+      white-space: pre;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: .78rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .best {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .strong {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .watch {
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .avoid {
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
+    .rank {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #e6ece8;
+      font-weight: 800;
+      color: #27312e;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .note {
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--green);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 16px;
+    }
+
+    .note.warning {
+      border-left-color: var(--amber);
+    }
+
+    .note.danger {
+      border-left-color: var(--red);
+    }
+
+    .method-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .method-list li {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .command-cell {
+      max-width: 330px;
+    }
+
+    .command-cell code {
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 18px 0 28px;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    @media (max-width: 860px) {
+      .summary-grid,
+      .split {
+        grid-template-columns: 1fr;
+      }
+
+      .bar {
+        padding-top: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <h1>Exasol AI Installation Methods</h1>
+      <p class="lead">A practical comparison of one-command install paths for bundling Exasol Nano, Exasol JSON Tables, and Exasol MCP Server. The MVP path is Docker-only with separate Windows and macOS/Linux bootstrap commands.</p>
+      <div class="summary-grid" aria-label="Recommended installation summary">
+        <div class="summary">
+          <strong>Best MVP</strong>
+          <span>GitHub Release asset installer for PowerShell and shell, backed by Docker Compose.</span>
+        </div>
+        <div class="summary">
+          <strong>Most Reliable Script Mode</strong>
+          <span>Download installer, verify SHA256, then execute. Longer command, stronger integrity.</span>
+        </div>
+        <div class="summary">
+          <strong>Best Mature Windows</strong>
+          <span>Winget package after a signed installer exists and repository validation passes.</span>
+        </div>
+        <div class="summary">
+          <strong>Best Mature macOS/Linux</strong>
+          <span>Homebrew tap first. Homebrew core later if the project meets acceptance criteria.</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>Recommended MVP Commands</h2>
+      <div class="split">
+        <div class="note">
+          <h3>Windows PowerShell</h3>
+          <pre><code>irm https://raw.githubusercontent.com/krishna-exasol/exasol-ai/main/install.ps1 | iex</code></pre>
+        </div>
+        <div class="note">
+          <h3>macOS / Linux</h3>
+          <pre><code>curl -fsSL https://raw.githubusercontent.com/krishna-exasol/exasol-ai/main/install.sh | sh</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Method Comparison</h2>
+      <div class="panel table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Method</th>
+              <th>Command</th>
+              <th>Reliability</th>
+              <th>Approval</th>
+              <th>Best Use</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="rank">1</span></td>
+              <td>GitHub Release + checksum</td>
+              <td class="command-cell"><code>irm ... -OutFile install.ps1; Get-FileHash ...; .\install.ps1</code></td>
+              <td><span class="badge best">Very high</span></td>
+              <td>None</td>
+              <td>Public MVP with integrity check</td>
+              <td>Best script-based reliability. Publish SHA256 beside each release asset.</td>
+            </tr>
+            <tr>
+              <td><span class="rank">2</span></td>
+              <td>GitHub Release pipe</td>
+              <td class="command-cell"><code>irm https://github.com/.../install.ps1 | iex</code></td>
+              <td><span class="badge strong">High</span></td>
+              <td>None</td>
+              <td>Recommended MVP default</td>
+              <td>Use versioned release assets, not a branch URL. Keep installer idempotent.</td>
+            </tr>
+            <tr>
+              <td><span class="rank">3</span></td>
+              <td>Homebrew custom tap</td>
+              <td class="command-cell"><code>brew tap &lt;org&gt;/exasol-ai; brew install exasol-ai</code></td>
+              <td><span class="badge strong">High</span></td>
+              <td>No central approval</td>
+              <td>Fast macOS/Linux package-manager path</td>
+              <td>Requires a `homebrew-*` tap repository. Much faster than Homebrew core.</td>
+            </tr>
+            <tr>
+              <td><span class="rank">4</span></td>
+              <td>Winget</td>
+              <td class="command-cell"><code>winget install &lt;publisher&gt;.ExasolAI</code></td>
+              <td><span class="badge best">Very high</span></td>
+              <td>Microsoft validation and possible manual review</td>
+              <td>Mature Windows distribution</td>
+              <td>Needs a silent signed installer, manifest, installer URL, and SHA256.</td>
+            </tr>
+            <tr>
+              <td><span class="rank">5</span></td>
+              <td>Homebrew core</td>
+              <td class="command-cell"><code>brew install exasol-ai</code></td>
+              <td><span class="badge best">Very high</span></td>
+              <td>Homebrew maintainer review</td>
+              <td>Later public macOS/Linux distribution</td>
+              <td>Higher bar: stable tagged release, audit, tests, maintainability, adoption.</td>
+            </tr>
+            <tr>
+              <td><span class="rank">6</span></td>
+              <td>Raw GitHub pinned tag</td>
+              <td class="command-cell"><code>irm https://raw.githubusercontent.com/.../v0.1.0/install.ps1 | iex</code></td>
+              <td><span class="badge watch">Medium</span></td>
+              <td>None</td>
+              <td>Early iteration</td>
+              <td>Use tags or commit SHAs. Avoid `main` for anything users depend on.</td>
+            </tr>
+            <tr>
+              <td><span class="rank">7</span></td>
+              <td>Scoop</td>
+              <td class="command-cell"><code>scoop bucket add ...; scoop install exasol-ai</code></td>
+              <td><span class="badge strong">High</span></td>
+              <td>No central approval for own bucket</td>
+              <td>Developer Windows users</td>
+              <td>Good secondary channel, less universal than PowerShell or Winget.</td>
+            </tr>
+            <tr>
+              <td><span class="rank">8</span></td>
+              <td>Chocolatey</td>
+              <td class="command-cell"><code>choco install exasol-ai</code></td>
+              <td><span class="badge strong">High</span></td>
+              <td>Public repo moderation, or none for private feed</td>
+              <td>Enterprise Windows automation</td>
+              <td>Useful if target users already use Chocolatey.</td>
+            </tr>
+            <tr>
+              <td><span class="rank">9</span></td>
+              <td>`uvx` bootstrap</td>
+              <td class="command-cell"><code>uvx exasol-ai@0.1.0 install</code></td>
+              <td><span class="badge strong">High</span></td>
+              <td>PyPI release process</td>
+              <td>Python-oriented developers</td>
+              <td>Clean isolated execution, but requires `uv` first.</td>
+            </tr>
+            <tr>
+              <td><span class="rank">10</span></td>
+              <td>`pipx run` bootstrap</td>
+              <td class="command-cell"><code>pipx run exasol-ai install</code></td>
+              <td><span class="badge watch">Medium</span></td>
+              <td>PyPI release process</td>
+              <td>Python users without Homebrew/Winget</td>
+              <td>More prerequisite friction than Docker plus shell script.</td>
+            </tr>
+            <tr>
+              <td><span class="rank">11</span></td>
+              <td>Docker Compose from URL</td>
+              <td class="command-cell"><code>docker compose -f https://.../compose.yaml up -d</code></td>
+              <td><span class="badge watch">Medium</span></td>
+              <td>None</td>
+              <td>Container-only demo</td>
+              <td>Does not handle host wrapper scripts, config, uninstall, or checks well.</td>
+            </tr>
+            <tr>
+              <td><span class="rank">12</span></td>
+              <td>Docker socket bootstrap container</td>
+              <td class="command-cell"><code>docker run -v /var/run/docker.sock:/var/run/docker.sock ...</code></td>
+              <td><span class="badge avoid">Avoid primary</span></td>
+              <td>None</td>
+              <td>Controlled CI/demo environments</td>
+              <td>Portable but powerful. Docker socket mounting is a significant security tradeoff.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Dependency Conflict Resolution</h2>
+      <div class="split">
+        <div class="note">
+          <h3>Problem</h3>
+          <p><code>exasol-json-tables</code> currently requires <code>pyexasol&gt;=2.2,&lt;3</code>, while <code>exasol-mcp-server</code> currently requires <code>pyexasol&gt;=1,&lt;2</code>. A single Python environment cannot satisfy both constraints.</p>
+        </div>
+        <div class="note">
+          <h3>MVP Solution</h3>
+          <p>Run JSON Tables and MCP Server in separate Docker containers. This keeps both dependency sets valid and gives the user one Docker-based install path.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Release Criteria</h2>
+      <ul class="method-list">
+        <li><strong>Pin Nano.</strong> Use a tested tag or immutable image digest instead of <code>latest</code>.</li>
+        <li><strong>Pin JSON Tables.</strong> Use a tested tag or commit instead of <code>main</code>.</li>
+        <li><strong>Pin MCP Server.</strong> Use an exact package version such as <code>1.10.1</code>.</li>
+        <li><strong>Verify assets.</strong> Publish SHA256 checksums for installer assets and generated packages.</li>
+        <li><strong>Default to local access.</strong> Bind SQL, Web UI, and MCP ports to <code>127.0.0.1</code>.</li>
+        <li><strong>Keep MCP read-only by default.</strong> Write tools should require explicit user action.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <main>Draft page for the Exasol AI installer MVP. Replace placeholder organization, repository, tags, and checksums before publishing.</main>
+  </footer>
+</body>
+</html>

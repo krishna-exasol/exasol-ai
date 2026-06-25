@@ -1,0 +1,60 @@
+services:
+  nano:
+    image: ${EXASOL_NANO_IMAGE:-docker.io/exasol/nano:latest}
+    container_name: exasol-ai-nano
+    shm_size: "512m"
+    ports:
+      - "127.0.0.1:${EXASOL_SQL_PORT:-8563}:8563"
+      - "127.0.0.1:${EXASOL_WEB_PORT:-8443}:8443"
+    volumes:
+      - exasol-ai-data:/exa
+    stdin_open: true
+    tty: true
+
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        EXASOL_MCP_SERVER_VERSION: ${EXASOL_MCP_SERVER_VERSION:-1.10.1}
+    container_name: exasol-ai-mcp
+    depends_on:
+      - nano
+    ports:
+      - "127.0.0.1:${EXASOL_MCP_PORT:-4896}:4896"
+    environment:
+      EXA_DSN: nano:8563
+      EXA_USER: sys
+      EXA_PASSWORD: exasol
+      EXA_SSL_CERT_VALIDATION: "false"
+      EXA_MCP_SETTINGS: /config/mcp-settings.json
+      EXA_MCP_LOG_LEVEL: INFO
+      EXA_MCP_LOG_TO_CONSOLE: "true"
+    volumes:
+      - ./mcp-settings.json:/config/mcp-settings.json:ro
+
+  json-tables:
+    build:
+      context: .
+      dockerfile: Dockerfile.json-tables
+      args:
+        EXASOL_JSON_TABLES_REPOSITORY: ${EXASOL_JSON_TABLES_REPOSITORY:-https://github.com/exasol-labs/exasol-json-tables.git}
+        EXASOL_JSON_TABLES_REF: ${EXASOL_JSON_TABLES_REF:-main}
+    container_name: exasol-ai-json-tables
+    depends_on:
+      - nano
+    working_dir: /workspace
+    # JSON Tables is a CLI tool with no server process. To keep it running as a
+    # standing container, override the image entrypoint with a keep-alive and
+    # invoke the CLI on demand via: docker compose exec json-tables exasol-json-tables ...
+    entrypoint: ["sleep", "infinity"]
+    restart: unless-stopped
+    environment:
+      EXASOL_DSN: nano:8563
+      EXASOL_USER: sys
+      EXASOL_PASSWORD: exasol
+    volumes:
+      - ./workspace:/workspace
+
+volumes:
+  exasol-ai-data:
