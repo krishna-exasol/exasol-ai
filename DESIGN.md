@@ -85,6 +85,9 @@ This is more reliable than trying to force both packages into one Python environ
 - Keep MCP Server pinned to an exact package version.
 - Publish installer files as GitHub Release assets.
 - Publish SHA256 checksums.
+- Publish prebuilt JSON Tables and MCP images to GHCR (see
+  `.github/workflows/release-images.yml`) so the prebuilt install path
+  (`EXASOL_PREBUILT=1`, `compose.release.yaml`) pulls instead of compiling.
 - Add a full smoke test once Docker is running:
   - Nano starts.
   - SQL `SELECT 1` succeeds.

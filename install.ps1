@@ -5,8 +5,15 @@ param(
     [string] $McpServerVersion = "",
     [string] $BaseUrl = "",
     [string] $Ref = "main",
-    [switch] $SkipBuildTools
+    [switch] $SkipBuildTools,
+    [switch] $Prebuilt
 )
+
+# Prebuilt mode can also be enabled via env var (handy for `irm ... | iex`,
+# which cannot pass switches): $env:EXASOL_PREBUILT = "1".
+if (-not $Prebuilt -and $env:EXASOL_PREBUILT -eq "1") {
+    $Prebuilt = $true
+}
 
 $ErrorActionPreference = "Stop"
 
@@ -115,14 +122,25 @@ Write-Info "into $InstallDir"
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir "workspace") | Out-Null
 
-$assets = @(
-    "compose.yaml",
-    "Dockerfile.mcp",
-    "Dockerfile.json-tables",
-    "mcp-settings.json",
-    "manifest.json",
-    "uninstall.ps1"
-)
+if ($Prebuilt) {
+    $composeFile = "compose.release.yaml"
+    $assets = @(
+        "compose.release.yaml",
+        "mcp-settings.json",
+        "manifest.json",
+        "uninstall.ps1"
+    )
+} else {
+    $composeFile = "compose.yaml"
+    $assets = @(
+        "compose.yaml",
+        "Dockerfile.mcp",
+        "Dockerfile.json-tables",
+        "mcp-settings.json",
+        "manifest.json",
+        "uninstall.ps1"
+    )
+}
 
 foreach ($asset in $assets) {
     Copy-Or-DownloadAsset -Name $asset -Destination (Join-Path $InstallDir $asset)
@@ -142,33 +160,56 @@ if (-not $McpServerVersion) {
     $McpServerVersion = $manifest.mcpServer.version
 }
 
+# Resolve prebuilt image references from the manifest (overridable via env).
+$imageRegistry = if ($env:EXASOL_IMAGE_REGISTRY) { $env:EXASOL_IMAGE_REGISTRY } else { $manifest.images.registry }
+$imageTag = if ($env:EXASOL_IMAGE_TAG) { $env:EXASOL_IMAGE_TAG } else { $manifest.images.tag }
+$jsonTablesImage = if ($env:EXASOL_JSON_TABLES_IMAGE) { $env:EXASOL_JSON_TABLES_IMAGE } else { "$imageRegistry/$($manifest.images.jsonTables):$imageTag" }
+$mcpImage = if ($env:EXASOL_MCP_IMAGE) { $env:EXASOL_MCP_IMAGE } else { "$imageRegistry/$($manifest.images.mcp):$imageTag" }
+
 $envPath = Join-Path $InstallDir ".env"
 @(
     "EXASOL_NANO_IMAGE=$NanoImage",
     "EXASOL_JSON_TABLES_REF=$JsonTablesRef",
     "EXASOL_MCP_SERVER_VERSION=$McpServerVersion",
+    "EXASOL_JSON_TABLES_IMAGE=$jsonTablesImage",
+    "EXASOL_MCP_IMAGE=$mcpImage",
     "EXASOL_SQL_PORT=$($manifest.ports.sql)",
     "EXASOL_WEB_PORT=$($manifest.ports.web)",
     "EXASOL_MCP_PORT=$($manifest.ports.mcp)"
 ) | Set-Content -LiteralPath $envPath -Encoding utf8
 Write-Ok "Nano image:   $NanoImage"
-Write-Ok "JSON Tables:  $JsonTablesRef"
-Write-Ok "MCP Server:   $McpServerVersion"
+if ($Prebuilt) {
+    Write-Ok "JSON Tables:  $jsonTablesImage (prebuilt)"
+    Write-Ok "MCP Server:   $mcpImage (prebuilt)"
+} else {
+    Write-Ok "JSON Tables:  $JsonTablesRef"
+    Write-Ok "MCP Server:   $McpServerVersion"
+}
 if ($NanoImage -match ":latest$") {
     Write-Warn "Nano image uses 'latest'. For a release, pin a tested tag or sha256 digest."
 }
-if ($JsonTablesRef -eq "main") {
+if ((-not $Prebuilt) -and $JsonTablesRef -eq "main") {
     Write-Warn "JSON Tables ref is 'main'. For a release, pin a tested tag or commit."
 }
 
 Push-Location $InstallDir
 try {
-    Write-Phase "Building & starting containers"
-    Write-Info "First run pulls images and compiles the JSON Tables engine - this can take a few minutes."
-    if ($SkipBuildTools) {
-        docker compose --env-file .env -f compose.yaml up -d --build nano mcp-server
+    if ($Prebuilt) {
+        Write-Phase "Pulling & starting containers"
+        Write-Info "Pulling prebuilt images - no local compile needed."
+        docker compose --env-file .env -f $composeFile pull
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to pull prebuilt images (docker compose exited $LASTEXITCODE)."
+        }
+        docker compose --env-file .env -f $composeFile up -d
     } else {
-        docker compose --env-file .env -f compose.yaml up -d --build
+        Write-Phase "Building & starting containers"
+        Write-Info "First run pulls images and compiles the JSON Tables engine - this can take a few minutes."
+        if ($SkipBuildTools) {
+            docker compose --env-file .env -f $composeFile up -d --build nano mcp-server
+        } else {
+            docker compose --env-file .env -f $composeFile up -d --build
+        }
     }
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to start the Exasol AI stack (docker compose exited $LASTEXITCODE)."
@@ -186,14 +227,20 @@ $ErrorActionPreference = "Stop"
 $installDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Push-Location $installDir
 try {
+    # Use whichever compose file this install was set up with.
+    if (Test-Path -LiteralPath (Join-Path $installDir "compose.release.yaml")) {
+        $composeFile = "compose.release.yaml"
+    } else {
+        $composeFile = "compose.yaml"
+    }
     # json-tables runs as a standing container; exec the CLI into it.
-    docker compose --env-file .env -f compose.yaml exec json-tables exasol-json-tables @JsonTablesArgs
+    docker compose --env-file .env -f $composeFile exec json-tables exasol-json-tables @JsonTablesArgs
 } finally {
     Pop-Location
 }
 '@ | Set-Content -LiteralPath $runnerPath -Encoding utf8
     Write-Ok "created run-json-tables.ps1 helper"
-    docker compose --env-file .env -f compose.yaml ps
+    docker compose --env-file .env -f $composeFile ps
     Write-Ok "health check complete"
 }
 finally {

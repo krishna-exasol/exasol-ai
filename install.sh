@@ -12,6 +12,21 @@ SKIP_BUILD_TOOLS="${SKIP_BUILD_TOOLS:-0}"
 EXASOL_AI_REF="${EXASOL_AI_REF:-main}"
 EXASOL_AI_BASE_URL="${EXASOL_AI_BASE_URL:-https://raw.githubusercontent.com/krishna-exasol/exasol-ai/${EXASOL_AI_REF}}"
 
+# Prebuilt mode: pull ready-made images from GHCR instead of building the
+# JSON Tables / MCP images from source. Off by default so this path is
+# identical to the proven source build unless explicitly requested.
+EXASOL_PREBUILT="${EXASOL_PREBUILT:-0}"
+IMAGE_REGISTRY="${EXASOL_IMAGE_REGISTRY:-ghcr.io/krishna-exasol}"
+IMAGE_TAG="${EXASOL_IMAGE_TAG:-0.1.0}"
+JSON_TABLES_IMAGE="${EXASOL_JSON_TABLES_IMAGE:-$IMAGE_REGISTRY/exasol-ai-json-tables:$IMAGE_TAG}"
+MCP_IMAGE="${EXASOL_MCP_IMAGE:-$IMAGE_REGISTRY/exasol-ai-mcp:$IMAGE_TAG}"
+
+if [ "$EXASOL_PREBUILT" = "1" ]; then
+  COMPOSE_FILE="compose.release.yaml"
+else
+  COMPOSE_FILE="compose.yaml"
+fi
+
 # ---------------------------------------------------------------------------
 # Pretty output helpers (colors only on an interactive terminal)
 # ---------------------------------------------------------------------------
@@ -95,7 +110,12 @@ ok "Docker engine is running"
 phase "Downloading stack files"
 info "into $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR/workspace"
-for asset in compose.yaml Dockerfile.mcp Dockerfile.json-tables mcp-settings.json manifest.json uninstall.sh; do
+if [ "$EXASOL_PREBUILT" = "1" ]; then
+  ASSETS="compose.release.yaml mcp-settings.json manifest.json uninstall.sh"
+else
+  ASSETS="compose.yaml Dockerfile.mcp Dockerfile.json-tables mcp-settings.json manifest.json uninstall.sh"
+fi
+for asset in $ASSETS; do
   copy_or_download_asset "$asset" "$INSTALL_DIR/$asset"
 done
 
@@ -104,28 +124,42 @@ cat > "$INSTALL_DIR/.env" <<EOF
 EXASOL_NANO_IMAGE=$NANO_IMAGE
 EXASOL_JSON_TABLES_REF=$JSON_TABLES_REF
 EXASOL_MCP_SERVER_VERSION=$MCP_SERVER_VERSION
+EXASOL_JSON_TABLES_IMAGE=$JSON_TABLES_IMAGE
+EXASOL_MCP_IMAGE=$MCP_IMAGE
 EXASOL_SQL_PORT=$SQL_PORT
 EXASOL_WEB_PORT=$WEB_PORT
 EXASOL_MCP_PORT=$MCP_PORT
 EOF
 ok "Nano image:   $NANO_IMAGE"
-ok "JSON Tables:  $JSON_TABLES_REF"
-ok "MCP Server:   $MCP_SERVER_VERSION"
+if [ "$EXASOL_PREBUILT" = "1" ]; then
+  ok "JSON Tables:  $JSON_TABLES_IMAGE (prebuilt)"
+  ok "MCP Server:   $MCP_IMAGE (prebuilt)"
+else
+  ok "JSON Tables:  $JSON_TABLES_REF"
+  ok "MCP Server:   $MCP_SERVER_VERSION"
+fi
 if printf '%s' "$NANO_IMAGE" | grep -q ':latest$'; then
   warn "Nano image uses 'latest'. For a release, pin a tested tag or sha256 digest."
 fi
-if [ "$JSON_TABLES_REF" = "main" ]; then
+if [ "$EXASOL_PREBUILT" != "1" ] && [ "$JSON_TABLES_REF" = "main" ]; then
   warn "JSON Tables ref is 'main'. For a release, pin a tested tag or commit."
 fi
 
 cd "$INSTALL_DIR"
 
-phase "Building & starting containers"
-info "First run pulls images and compiles the JSON Tables engine - this can take a few minutes."
-if [ "$SKIP_BUILD_TOOLS" = "1" ]; then
-  docker compose --env-file .env -f compose.yaml up -d --build nano mcp-server
+if [ "$EXASOL_PREBUILT" = "1" ]; then
+  phase "Pulling & starting containers"
+  info "Pulling prebuilt images - no local compile needed."
+  docker compose --env-file .env -f "$COMPOSE_FILE" pull
+  docker compose --env-file .env -f "$COMPOSE_FILE" up -d
 else
-  docker compose --env-file .env -f compose.yaml up -d --build
+  phase "Building & starting containers"
+  info "First run pulls images and compiles the JSON Tables engine - this can take a few minutes."
+  if [ "$SKIP_BUILD_TOOLS" = "1" ]; then
+    docker compose --env-file .env -f "$COMPOSE_FILE" up -d --build nano mcp-server
+  else
+    docker compose --env-file .env -f "$COMPOSE_FILE" up -d --build
+  fi
 fi
 ok "containers started"
 
@@ -135,12 +169,18 @@ cat > "$INSTALL_DIR/run-json-tables.sh" <<'EOF'
 set -eu
 install_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 cd "$install_dir"
+# Use whichever compose file this install was set up with.
+if [ -f compose.release.yaml ]; then
+  compose_file="compose.release.yaml"
+else
+  compose_file="compose.yaml"
+fi
 # json-tables runs as a standing container; exec the CLI into it.
-exec docker compose --env-file .env -f compose.yaml exec json-tables exasol-json-tables "$@"
+exec docker compose --env-file .env -f "$compose_file" exec json-tables exasol-json-tables "$@"
 EOF
 chmod +x "$INSTALL_DIR/run-json-tables.sh"
 ok "created run-json-tables.sh helper"
-docker compose --env-file .env -f compose.yaml ps
+docker compose --env-file .env -f "$COMPOSE_FILE" ps
 ok "health check complete"
 
 # ---------------------------------------------------------------------------

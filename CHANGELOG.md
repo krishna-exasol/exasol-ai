@@ -7,9 +7,16 @@ and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2
 
 ## [Unreleased]
 
+### Added
+- Optional **prebuilt-image install path** (`EXASOL_PREBUILT=1` / `-Prebuilt`): pulls
+  `ghcr.io/krishna-exasol/exasol-ai-json-tables` and `…-mcp` via `compose.release.yaml`
+  instead of compiling locally. Source build remains the default.
+- `.github/workflows/release-images.yml` builds and pushes both images (multi-arch
+  amd64/arm64) to GHCR on each `v*` tag.
+
 ### Planned
 - Pin Nano image digest, JSON Tables ref, and MCP Server version for reproducible installs.
-- Publish pre-built images to GHCR so installs pull instead of compiling (faster, smaller, checksummable).
+- Make the prebuilt path the default once images are published and smoke-tested.
 - Move from raw-`main` to versioned GitHub Release assets with SHA256 checksums.
 - Slim the JSON Tables image with a multi-stage build (drop the Rust toolchain from the runtime).
 - Set `EXA_POOL_SIZE=1` on the MCP container for a reliable per-session preprocessor bridge.

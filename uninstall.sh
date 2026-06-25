@@ -9,12 +9,20 @@ if [ ! -d "$INSTALL_DIR" ]; then
   exit 0
 fi
 
-if [ -f "$INSTALL_DIR/compose.yaml" ]; then
+if [ -f "$INSTALL_DIR/compose.release.yaml" ]; then
+  COMPOSE_FILE="compose.release.yaml"
+elif [ -f "$INSTALL_DIR/compose.yaml" ]; then
+  COMPOSE_FILE="compose.yaml"
+else
+  COMPOSE_FILE=""
+fi
+
+if [ -n "$COMPOSE_FILE" ]; then
   cd "$INSTALL_DIR"
   if [ "$REMOVE_DATA" = "1" ]; then
-    docker compose --env-file .env -f compose.yaml down --volumes
+    docker compose --env-file .env -f "$COMPOSE_FILE" down --volumes
   else
-    docker compose --env-file .env -f compose.yaml down
+    docker compose --env-file .env -f "$COMPOSE_FILE" down
   fi
 fi
 

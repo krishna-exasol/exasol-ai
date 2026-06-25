@@ -43,6 +43,32 @@ The installer will:
 
 > First run takes several minutes: it pulls the Nano image, installs the MCP Server, and compiles the JSON Tables ingest engine. Later runs are fast.
 
+### Faster install with prebuilt images (optional)
+
+By default the installer builds the JSON Tables and MCP images from source (it
+compiles the Rust ingest engine on your machine). You can instead pull
+ready-made images from GHCR, which skips the local compile entirely:
+
+**Windows (PowerShell):**
+
+```powershell
+$env:EXASOL_PREBUILT = "1"
+irm https://raw.githubusercontent.com/krishna-exasol/exasol-ai/main/install.ps1 | iex
+```
+
+> Running a local copy instead? `.\install.ps1 -Prebuilt` does the same thing.
+
+**macOS / Linux:**
+
+```bash
+EXASOL_PREBUILT=1 curl -fsSL https://raw.githubusercontent.com/krishna-exasol/exasol-ai/main/install.sh | sh
+```
+
+This uses `compose.release.yaml` and pulls
+`ghcr.io/krishna-exasol/exasol-ai-json-tables` and `…-mcp`. The images are
+published by the **Release images** GitHub Actions workflow (`.github/workflows/release-images.yml`)
+on each `v*` tag. Override the version with `EXASOL_IMAGE_TAG` (e.g. `0.1.0`).
+
 ---
 
 ## 3. What you get

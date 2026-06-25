@@ -15,6 +15,12 @@
     "package": "exasol-mcp-server",
     "version": "1.10.1"
   },
+  "images": {
+    "registry": "ghcr.io/krishna-exasol",
+    "tag": "0.1.0",
+    "jsonTables": "exasol-ai-json-tables",
+    "mcp": "exasol-ai-mcp"
+  },
   "ports": {
     "sql": 8563,
     "web": 8443,

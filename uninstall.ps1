@@ -10,16 +10,24 @@ if (-not (Test-Path -LiteralPath $InstallDir)) {
     return
 }
 
+$releaseComposePath = Join-Path $InstallDir "compose.release.yaml"
 $composePath = Join-Path $InstallDir "compose.yaml"
 $envPath = Join-Path $InstallDir ".env"
 
-if (Test-Path -LiteralPath $composePath) {
+$composeFile = $null
+if (Test-Path -LiteralPath $releaseComposePath) {
+    $composeFile = "compose.release.yaml"
+} elseif (Test-Path -LiteralPath $composePath) {
+    $composeFile = "compose.yaml"
+}
+
+if ($composeFile) {
     Push-Location $InstallDir
     try {
         if ($RemoveData) {
-            docker compose --env-file .env -f compose.yaml down --volumes
+            docker compose --env-file .env -f $composeFile down --volumes
         } else {
-            docker compose --env-file .env -f compose.yaml down
+            docker compose --env-file .env -f $composeFile down
         }
     }
     finally {
