@@ -12,7 +12,11 @@ After install you get **three standing containers** (`exasol-ai-nano`, `exasol-a
 
 ---
 
-## Install (one command)
+Only prerequisite: **Docker** installed and running. There are two install methods — pick one.
+
+### Method 1 — Script pipe (builds from source)
+
+Works everywhere; the first run compiles the JSON Tables engine locally, so it takes a few minutes.
 
 **Windows (PowerShell):**
 
@@ -26,12 +30,27 @@ irm https://raw.githubusercontent.com/krishna-exasol/exasol-ai/main/install.ps1 
 curl -fsSL https://raw.githubusercontent.com/krishna-exasol/exasol-ai/main/install.sh | sh
 ```
 
-Only prerequisite: **Docker** installed and running. The installer downloads everything into `~/.exasol-ai/`, then builds and starts the stack.
+### Method 2 — Prebuilt images (pull from GHCR)
 
-From a local clone instead, run `.\install.ps1` (Windows) or `./install.sh` (macOS/Linux).
+Fastest — pulls ready-made images (`ghcr.io/krishna-exasol/exasol-ai-json-tables` and `…-mcp`) instead of compiling. No Rust toolchain, no local build.
 
-A future pinned-release form will be:
-`irm https://github.com/krishna-exasol/exasol-ai/releases/download/v0.1.0/install.ps1 | iex`
+**Windows (PowerShell):**
+
+```powershell
+$env:EXASOL_PREBUILT="1"; irm https://raw.githubusercontent.com/krishna-exasol/exasol-ai/main/install.ps1 | iex
+```
+
+**macOS / Linux:**
+
+```bash
+EXASOL_PREBUILT=1 curl -fsSL https://raw.githubusercontent.com/krishna-exasol/exasol-ai/main/install.sh | sh
+```
+
+The images are published to GHCR by the **Release images** workflow on each `v*` tag. Override the version with `EXASOL_IMAGE_TAG` (default `0.1.0`).
+
+> **Note:** Method 2 requires the prebuilt-install support to be on the branch you fetch the installer from. Until it is merged to `main`, point the installer at this branch, e.g. `EXASOL_AI_REF=github-release-binary EXASOL_PREBUILT=1 curl -fsSL https://raw.githubusercontent.com/krishna-exasol/exasol-ai/github-release-binary/install.sh | sh`.
+
+Either way the installer downloads everything into `~/.exasol-ai/`, then starts the stack. From a local clone instead, run `.\install.ps1` / `./install.sh` (add `-Prebuilt` / `EXASOL_PREBUILT=1` for Method 2).
 
 ---
 
@@ -79,9 +98,10 @@ docker compose -f "$HOME/.exasol-ai/compose.yaml" --env-file "$HOME/.exasol-ai/.
 
 ```text
 ~/.exasol-ai/
-  compose.yaml
-  Dockerfile.mcp
-  Dockerfile.json-tables
+  compose.yaml              # Method 1 (source build)
+  Dockerfile.mcp            # Method 1 only
+  Dockerfile.json-tables    # Method 1 only
+  compose.release.yaml      # Method 2 (prebuilt) — instead of the above three
   mcp-settings.json
   manifest.json
   .env
